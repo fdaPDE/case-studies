@@ -162,6 +162,8 @@ GWR <- SpatialRegressionCaseStudy(method_name="GWR",
 #                                   FEMbasis = FEMbasis)
 # inla.graph = metric_graph$new(V = mesh$nodes, E = mesh$edges) # Too memory demanding
 
+SR_PDE_beta = matrix(nrow=K, ncol=3)
+GWR_beta = list(matrix(nrow=K, ncol=159), matrix(nrow=K, ncol=159), matrix(nrow=K, ncol=159))
 
 for(j in 1:K){
   cat(paste("-------------------  ", j, " / ", K,"  -------------------\n", sep="") )
@@ -178,22 +180,25 @@ for(j in 1:K){
   
   Sp.data.test = SpatialPointsDataFrame(coords = cbind(test_data$X, test_data$Y),
                                         data = test_data)
+
+  invisible( capture.output( bw.ND <- bw.gwr(response ~ FLOORSZ + PROF + BATH2, 
+                                             data = Sp.data.train, 
+                                             approach="AIC", 
+                                             kernel="gaussian",
+                                             dMat = train_ND)))
   
-  bw.ND = bw.gwr(response ~ FLOORSZ + PROF + BATH2, 
-                 data = Sp.data.train, 
-                 approach="AIC", 
-                 kernel="gaussian",
-                 dMat = train_ND)
-  
-  GWR.ND = gwr.predict(response ~ FLOORSZ + PROF + BATH2, 
-                       data = Sp.data.train, 
-                       predictdata = Sp.data.test,
-                       kernel = "gaussian",
-                       bw = bw.ND,
-                       dMat1 = cross_ND,
-                       dMat2 = train_ND)
+  invisible( capture.output( GWR.ND <- gwr.predict(response ~ FLOORSZ + PROF + BATH2, 
+                                                   data = Sp.data.train, 
+                                                   predictdata = Sp.data.test, 
+                                                   kernel = "gaussian",
+                                                   bw = bw.ND,
+                                                   dMat1 = cross_ND,
+                                                   dMat2 = train_ND)))
   
   GWR$update_error(GWR.ND$SDF$prediction, test_data$response, j)
+  GWR_beta[[1]][j,]= GWR.ND$SDF$FLOORSZ_coef
+  GWR_beta[[2]][j,]= GWR.ND$SDF$PROF_coef
+  GWR_beta[[3]][j,]= GWR.ND$SDF$BATH2_coef
   
   # SR-PDE ---------------------------------------------------------------------
   X = cbind( train_data$FLOORSZ, 
@@ -213,6 +218,8 @@ for(j in 1:K){
   beta2 = output_CPP$solution$beta[2]
   beta3 = output_CPP$solution$beta[3]
   
+  SR_PDE_beta[j,] = c(beta1, beta2, beta3)
+  
   prediction = beta1*test_data$FLOORSZ + 
     beta2*test_data$PROF + 
     beta3*test_data$BATH2 +
@@ -223,7 +230,7 @@ for(j in 1:K){
   SR_PDE$update_error(prediction, test_data$response,j)
 }
 
-save(SR_PDE, GWR, folder.name,
+save(SR_PDE, GWR, SR_PDE_beta, GWR_beta, folder.name,
      file = paste0(folder.name,"data",".RData"))
 
 # Post processing --------------------------------------------------------------
@@ -272,6 +279,46 @@ rownames(rmse_table) <- SimulationBlock$method_names
 write.table(round(rmse_table, digits=4),
             file=paste0(folder.name,"CV_error.txt"))
 
+# parametric term --------------------------------------------------------------
+
+Sp.data.train = SpatialPointsDataFrame(coords = cbind(data$X, data$Y),
+                                       data = data)
+
+invisible( capture.output( bw.ND <- bw.gwr(response ~ FLOORSZ + PROF + BATH2, 
+               data = Sp.data.train, 
+               approach="AIC", 
+               kernel="gaussian",
+               dMat = ND)))
+
+invisible(capture.output( GWR.ND <- gwr.basic(response ~ FLOORSZ + PROF + BATH2,
+                                          data = Sp.data.train, 
+                                          bw = bw.ND, 
+                                          kernel="gaussian",
+                                          dMat = ND)))
+GWR.ND$lm$coefficients
+
+summary(GWR.ND)
+
+# SR-PDE ---------------------------------------------------------------------
+
+inf_obj<-inferenceDataObjectBuilder(test='oat', dim = 2, n_cov = 3)
+X = cbind( data$FLOORSZ, 
+           data$PROF,   #, 
+           data$BATH2) #, 
+lambda = 10^seq(from=-3,to=-1.5,length.out=20) 
+output_CPP = smooth.FEM(observations = data$response, 
+                        locations = cbind(data$X, data$Y),
+                        FEMbasis = FEMbasis,
+                        covariates = X,
+                        lambda = lambda,
+                        lambda.selection.criterion = "grid",
+                        lambda.selection.lossfunction = "GCV",
+                        DOF.evaluation = "stochastic", 
+                        inference.data.object = inf_obj)
+
+beta1 = output_CPP$solution$beta[1]
+beta2 = output_CPP$solution$beta[2]
+beta3 = output_CPP$solution$beta[3]
 
 # pdf(paste0(folder.name, "case_study_domain.pdf"))
 # plot(mesh, linewidth=0.25)
