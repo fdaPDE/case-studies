@@ -1,0 +1,3 @@
+[submodule "[2026]_clemente_et_al__under_review/fdaPDE-cpp"]
+	path = [2026]_clemente_et_al__under_review/fdaPDE-cpp
+	url = https://github.com/fdaPDE/fdaPDE-cpp.git

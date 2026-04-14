@@ -1,0 +1,10 @@
+*
+
+!.gitignore
+!*.cpp
+!*.h
+!*.R
+!*.sh
+!*.txt
+!*/
+!README.md
