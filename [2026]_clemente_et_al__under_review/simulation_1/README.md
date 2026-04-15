@@ -14,12 +14,13 @@ The `GENERATE_DATA.exe` executable generates all the data needed to run Simulati
 To compile and run Simulation 1:
 ```{bash}
 ./compile.sh simulation_1.cpp
-
-N=250
-reac=1.00 
+ 
 for sim in $(seq 0 29); do
-./simulation_1.exe $N $sim $reac 
-done   
+./simulation_1.exe 250 $sim 1.00 
+done
+
+rm simulation_1.exe
+chown -R 1000:1000 simulation_1/  
 ```
 
 **TPS** To run the simulations related to TPS, execute run_tps.sh from a terminal outside the container. The Docker image does not include the R package mgcv, which is required.
@@ -29,12 +30,14 @@ To compile and run case A:
 ```{bash}
 ./compile.sh case_a.cpp
 
-N=250
 for reac in 0.20 0.40 0.60 0.80 1.00; do
 for sim in $(seq 0 29); do
-  ./case_a.exe $N $sim $reac
+  ./case_a.exe 250 $sim $reac
 done
-done  
+done
+
+rm case_a.exe
+chown -R 1000:1000 case_a/  
 ```
 
 #### Case B
@@ -42,13 +45,14 @@ To compile and run case B:
 ```{bash}
 ./compile.sh case_b.cpp
 
-N=250
-reac=1.00
-for N in 125 250 500 1000 2000; do
+for n in 125 250 500 1000 2000; do
 for sim in $(seq 0 29); do
-  ./case_b.exe $N $sim $reac
+  ./case_b.exe $n $sim 1.00
 done
-done  
+done
+
+rm case_b.exe
+chown -R 1000:1000 case_b/  
 ```
 
 

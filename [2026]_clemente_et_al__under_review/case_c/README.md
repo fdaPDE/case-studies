@@ -16,12 +16,14 @@ To compile and run Case C:
 ```{bash}
 ./compile.sh case_c.cpp
 
-reac=1.00
 for M in 5 11 21 41; do
 for sim in $(seq 0 29); do
-  ./case_c.exe 250 $sim $reac $M
+  ./case_c.exe 250 $sim 1.00 $M
 done
-done  
+done
+
+rm case_c.exe
+chown -R 1000:1000 case_c/  
 ```
 
 **Note** 

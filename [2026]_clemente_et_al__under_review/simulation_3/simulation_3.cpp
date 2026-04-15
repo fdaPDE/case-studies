@@ -77,10 +77,6 @@ int main(int argc, char *argv[]){
     vector_t reactions = vector_t::Ones(9);
     reactions << 0., 0.1, 0.25, 0.5, 0.9, 1.0, 1.1, 1.5, 2.0;
 
-    // vector_t lambdas = vector_t::Ones(1);
-    // vector_t reactions = vector_t::Ones(1);
-    
-
     // ---------------------------------------------------------------------------------------------------------------------------
    Eigen::Matrix<double, Dynamic,2> grid = expand_grid( std::vector<vector_t>{lambdas, reactions} );
     Eigen::Matrix<double, Dynamic,2> grid_linear = expand_grid( std::vector<vector_t>{lambdas, vector_t::Zero(1)} );
@@ -194,11 +190,6 @@ int main(int argc, char *argv[]){
     Eigen::saveMarket(optimizer.optimum(), output_dir + "cv_optim.mtx");
     Eigen::saveMarket(optimizer_linear.optimum(), output_dir + "cv_optim_linear.mtx");
 
-    // PARA
-    //vector_t values_para = values.head(lambdas.size());
-    // Eigen::Index minRow;
-    // values_linear.minCoeff(&minRow);
-    // double lambda_para = lambdas[minRow]; 
     std::cout << "opt (linear) " << optimizer.optimum()[0] << std::endl;
     std::cout << "values (linear) " << values_linear << std::endl;
     // ---- output kFold 
@@ -234,10 +225,10 @@ int main(int argc, char *argv[]){
     g_init.head(n_dofs * (n_times -1 )) = parabolic.misfit();
     model.set_g_initial_guess(g_init);
     model.set_state_initial_condition(IC);
-    model.solve(optimizer.optimum()[0]); // BacktrackingLineSearch()
+    model.solve(optimizer.optimum()[0]);
     vector_t result = model.y().tail((n_times-1)*n_dofs);
     
-    test_vals = Psi_test * result; //;matrix_t::Zero(test_locs.rows(), n_times - 1); // t0 butto via
+    test_vals = Psi_test * result; 
     rmse[0] = std::sqrt( (test_vals - test_obs.reshaped()).array().square().mean());
 
     tmp.tail((n_times-1)*n_dofs) = result;

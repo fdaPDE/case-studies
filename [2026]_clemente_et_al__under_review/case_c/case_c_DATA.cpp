@@ -1,4 +1,3 @@
-// SUPPLEMENTARY MATERIAL: simulation 32
 #include <fdaPDE/core/fdaPDE/core.h>
 #include <fdaPDE/src/solvers/utility.h>
 #include "../include/utils.h"
@@ -83,6 +82,9 @@ int main (int argc, char* argv[]){
     for(int t = 0; t < n_times; t++) time_mesh[t] = DeltaT*t;
 
     std::string data_dir = input_dir + "M_" + std::to_string(M) + "/";
+    command_str = "mkdir -p " + data_dir; 
+    system(command_str.c_str());
+    
     Eigen::saveMarket(time_mesh, data_dir + "time_mesh.mtx");
     
     vector_t IC = vector_t::Zero(n_dofs);
@@ -93,11 +95,9 @@ int main (int argc, char* argv[]){
     // laplacian operator bilinear form
     std::vector<double> alphas{1.0}; 
 
-    double mu = 1e-2; // 0.01
+    double mu = 1e-2; 
     Eigen::Matrix<double, 2,2> K;
     K << 1.1*mu, 0, 0, 0.9*mu;
-
-    //double alpha = 1.;
 
     for (int r=0; r<alphas.size(); ++r){
 
@@ -121,12 +121,7 @@ int main (int argc, char* argv[]){
         for(int t = 0; t < n_times-1; ++t){
             u_prev = solution.col(t);
             auto R = reac.assemble();
-            //range(R);
-           
-            //semi-implicit (no mass lumping) 
             sparse_matrix_t S = (1./DeltaT*M + A) - alpha*(M - R);
-            //std::cout << "S: " << std::endl; 
-            //range(S);
             
             rhs = 1./DeltaT * M*solution.col(t);
             
@@ -134,8 +129,7 @@ int main (int argc, char* argv[]){
             lin_solver.analyzePattern(S); 
             lin_solver.factorize(S);
             solution.col(t+1) = lin_solver.solve(rhs);
-            //std::cout << "range f("<<t+1<<") " << solution.col(t + 1).minCoeff() << " " << solution.col(t + 1).maxCoeff() << "\n" << std::endl;
-
+           
             //---
             S = (1./DeltaT*M + A);
             rhs = 1./DeltaT * M*diffusion.col(t);

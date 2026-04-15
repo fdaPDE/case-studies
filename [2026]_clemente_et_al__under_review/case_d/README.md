@@ -15,12 +15,14 @@ To compile and run Case D:
 ```{bash}
 ./compile.sh case_d.cpp
 
-reac=1.00
 for N in 11, 21, 31, 41; do
 for sim in $(seq 0 29); do
-  ./case_d.exe 250 $sim $reac $N
+  ./case_d.exe 250 $sim 1.00 $N
 done
 done  
+
+rm case_d.exe
+chown -R 1000:1000 case_d/  
 ```
 
 **Note** 

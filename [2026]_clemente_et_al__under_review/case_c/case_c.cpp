@@ -1,6 +1,3 @@
-// osservazioni spaziali fisse (sarebbe pronto per gestire anche diversi dati)
-// parametro di reazione variabile r = 1.00, n = 125, 250, ..., 2000
-
 #include <fdaPDE/fdapde.h>
 #include <fdaPDE/src/solvers/utility.h>
 #include "../include/utils.h"
@@ -57,12 +54,10 @@ int main(int argc, char *argv[]){
     matrix_t obs = read_mtx<double>(sim_dir + "obs.mtx");
     
     matrix_t exact = read_mtx<double>(data_dir + "fisher_kpp.mtx"); 
-    //vector_t IC = exact.col(0);
-
+    
     double mu = 0.01; // 0.001
     
     int n_dofs = nodes.rows();
-    //vector_t g_init = vector_t::Random(n_dofs*time_mesh.size()); // + vector_t::Ones(n_dofs*time_locs.size()));
     auto a = integral(unit_square)(mu * dot(grad(u), grad(v))); 
     auto F = integral(unit_square)(f * v);
     auto mass = integral(unit_square)(u*v).assemble();
@@ -72,14 +67,8 @@ int main(int argc, char *argv[]){
     vector_t lambdas = vector_t::Ones(9);
     lambdas << 1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1;
     
-    // vector_t lambdas = vector_t::Ones(1);
-    // lambdas << 10;
-
     vector_t reactions = vector_t::Zero(6); 
     reactions.tail(5) = vector_t::LinSpaced(5, std::stod(r_param) - 0.1, std::stod(r_param) + 0.1);
-    
-    // vector_t reactions = vector_t::Zero(2); 
-    // reactions<< 0. , 1.;
     
     // ---------------------------------------------------------------------------------------------------------------------------
     Eigen::Matrix<double, Dynamic,2> grid = expand_grid( std::vector<vector_t>{lambdas, reactions} );
@@ -97,8 +86,6 @@ int main(int argc, char *argv[]){
     sparse_matrix_t Im(n_times-1, n_times-1);
     Im.setIdentity();
     sparse_matrix_t Mt = kronecker(Im,mass);
-    
-
   
     ScalarField<2> SSE;
    
@@ -141,7 +128,6 @@ int main(int argc, char *argv[]){
                 result = model.y().tail((n_times-1)*n_dofs);
             
             }else{
-
                 vector_t response = obs.rightCols(n_times - 1).reshaped();
                 GeoFrame data(unit_square, T);
                 auto &l = data.insert_scalar_layer<POINT, POINT>("layer", std::pair{locs, time_locs});
@@ -156,7 +142,7 @@ int main(int argc, char *argv[]){
             sparse_matrix_t psi_test = internals::point_basis_eval(Vh, test_locs);
             
             sparse_matrix_t Psi_test = kronecker(Im,psi_test);
-            vector_t test_vals = Psi_test * result; //;matrix_t::Zero(test_locs.rows(), n_times - 1); // t0 butto via
+            vector_t test_vals = Psi_test * result; 
             res += std::sqrt( (test_vals - test_obs.reshaped()).array().square().mean());
         }
         
@@ -172,9 +158,6 @@ int main(int argc, char *argv[]){
     GridSearch<2> optimizer;
     optimizer.optimize(SSE, grid); 
     
-    //
-    
-    //
     vector_t rmse = vector_t::Ones(1);
     matrix_t test_obs = read_mtx<double>(data_dir + "test_obs.mtx");  
     std::cout << "test_obs " << test_obs.rows() << " " << test_obs.cols() << std::endl;
@@ -193,11 +176,6 @@ int main(int argc, char *argv[]){
     Eigen::saveMarket(optimizer.optimum(), output_dir + "cv_optim.mtx");
     Eigen::saveMarket(optimizer_linear.optimum(), output_dir + "cv_optim_linear.mtx");
 
-    // PARA
-    //vector_t values_para = values.head(lambdas.size());
-    // Eigen::Index minRow;
-    // values_linear.minCoeff(&minRow);
-    // double lambda_para = lambdas[minRow]; 
     std::cout << "opt (linear) " << optimizer.optimum()[0] << std::endl;
     std::cout << "values (linear) " << values_linear << std::endl;
     // ---- output kFold 
@@ -232,10 +210,10 @@ int main(int argc, char *argv[]){
     g_init.head(n_dofs * (n_times -1 )) = parabolic.misfit();
     model.set_g_initial_guess(g_init);
     model.set_state_initial_condition(IC);
-    model.solve(optimizer.optimum()[0]); // BacktrackingLineSearch()
+    model.solve(optimizer.optimum()[0]); 
     vector_t result = model.y().tail((n_times-1)*n_dofs);
     
-    test_vals = Psi_test * result; //;matrix_t::Zero(test_locs.rows(), n_times - 1); // t0 butto via
+    test_vals = Psi_test * result;
     rmse[0] = std::sqrt( (test_vals - test_obs.reshaped()).array().square().mean());
 
     tmp.tail((n_times-1)*n_dofs) = result;

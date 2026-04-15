@@ -1,4 +1,3 @@
-// SUPPLEMENTARY MATERIAL: simulation 32
 #include <fdaPDE/core/fdaPDE/core.h>
 #include <fdaPDE/src/solvers/utility.h>
 #include "../include/utils.h"
@@ -39,7 +38,6 @@ int main (int argc, char* argv[]){
     Eigen::saveMarket(unit_square.nodes(), mesh_dir + "points.mtx");
     Eigen::saveMarket(unit_square.cells(), mesh_dir + "cells.mtx");
     Eigen::saveMarket(unit_square.boundary_nodes().as_eigen_matrix(), mesh_dir + "boundary.mtx");
-    //Eigen::saveMarket(unit_square, mesh_dir + "quad_nodes.mtx");
 
     // FE space
     auto quad = P1<1>;
@@ -92,7 +90,6 @@ int main (int argc, char* argv[]){
     std::cout << dofs.rows() << " " << dofs.cols() << std::endl;
     std::cout << unit_square.nodes().rows() << " " << unit_square.nodes().cols() << std::endl;
     
-   // vector_t IC = read_mtx<double>(mesh_dir + "IC.mtx");
     std::cout << IC.minCoeff() << " " << IC.maxCoeff() << std::endl;
         
     u_prev = IC;
@@ -103,8 +100,7 @@ int main (int argc, char* argv[]){
 
     Eigen::Matrix<double, 2,2> K;
     K << 1.1*mu, 0, 0, 0.9*mu;
-    //double alpha = 1.;
-
+   
     for (int r=0; r<alphas.size(); ++r){
 
         double alpha = alphas[r];
@@ -127,12 +123,7 @@ int main (int argc, char* argv[]){
         for(int t = 0; t < n_times-1; ++t){
             u_prev = solution.col(t);
             auto R = reac.assemble();
-            //range(R);
-           
-            //semi-implicit (no mass lumping) 
             sparse_matrix_t S = (1./DeltaT*M + A) - alpha*(M - R);
-            //std::cout << "S: " << std::endl; 
-            //range(S);
             
             rhs = 1./DeltaT * M*solution.col(t);
             
@@ -140,8 +131,7 @@ int main (int argc, char* argv[]){
             lin_solver.analyzePattern(S); 
             lin_solver.factorize(S);
             solution.col(t+1) = lin_solver.solve(rhs);
-            //std::cout << "range f("<<t+1<<") " << solution.col(t + 1).minCoeff() << " " << solution.col(t + 1).maxCoeff() << "\n" << std::endl;
-
+            
             //---
             S = (1./DeltaT*M + A);
             rhs = 1./DeltaT * M*diffusion.col(t);

@@ -1,6 +1,3 @@
-// osservazioni spaziali fisse (sarebbe pronto per gestire anche diversi dati)
-// parametro di reazione variabile r = 1.00, n = 125, 250, ..., 2000
-
 #include <fdaPDE/fdapde.h>
 #include <fdaPDE/src/solvers/utility.h>
 #include "../include/utils.h"
@@ -61,37 +58,19 @@ int main(int argc, char *argv[]){
     double mu = 0.01; // 0.001
     
     int n_dofs = nodes.rows();
-    //vector_t g_init = vector_t::Random(n_dofs*time_mesh.size()); // + vector_t::Ones(n_dofs*time_locs.size()));
+
     auto a = integral(unit_square)(mu * dot(grad(u), grad(v))); 
     auto F = integral(unit_square)(f * v);
     auto mass = integral(unit_square)(u*v).assemble();
-
-    // vector_t exps = vector_t::LinSpaced(100,-8,-4);
-    // int n_lambda = exps.size();
-    //vector_t lambda_grid_IC = vector_t::Ones(n_lambda);
-    //for(int i=0; i<n_lambda;++i) lambda_grid_IC[i] = std::pow(10, exps[i]);
-    
-    //vector_t response_IC = obs.col(0);
-    //GeoFrame data_IC(unit_square);
-    // auto &l_IC = data_IC.insert_scalar_layer<POINT>("layer", locs);
-    // l_IC.load_vec("y", response_IC);
-    // SRPDE elliptic("y ~ f", data_IC, fe_ls_elliptic(a_IC, F));
-    
-    // GridSearch<1> optimizer_IC;
-    // optimizer_IC.optimize(elliptic.gcv(100, 476813), lambda_grid_IC);
-    // std::cout << "IC opt " << optimizer_IC.optimum().transpose() << std::endl;
-    // elliptic.fit(optimizer_IC.optimum());
 
     vector_t IC = exact.col(0);
     
     vector_t lambdas = vector_t::Ones(9);
     lambdas << 1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1;
-    //vector_t lambdas = 10* vector_t::Ones(1);
 
     vector_t reactions = vector_t::Zero(5); 
     reactions.tail(5) = vector_t::LinSpaced(5, std::stod(r_param) - 0.1, std::stod(r_param) + 0.1);
-    
-    //vector_t reactions = vector_t::Ones(1);
+
     // ---------------------------------------------------------------------------------------------------------------------------
    Eigen::Matrix<double, Dynamic,2> grid = expand_grid( std::vector<vector_t>{lambdas, reactions} );
     Eigen::Matrix<double, Dynamic,2> grid_linear = expand_grid( std::vector<vector_t>{lambdas, vector_t::Zero(1)} );
@@ -203,11 +182,6 @@ int main(int argc, char *argv[]){
     Eigen::saveMarket(optimizer.optimum(), output_dir + "cv_optim.mtx");
     Eigen::saveMarket(optimizer_linear.optimum(), output_dir + "cv_optim_linear.mtx");
 
-    // PARA
-    //vector_t values_para = values.head(lambdas.size());
-    // Eigen::Index minRow;
-    // values_linear.minCoeff(&minRow);
-    // double lambda_para = lambdas[minRow]; 
     std::cout << "opt (linear) " << optimizer.optimum()[0] << std::endl;
     std::cout << "values (linear) " << values_linear << std::endl;
     // ---- output kFold 
@@ -242,10 +216,10 @@ int main(int argc, char *argv[]){
     g_init.head(n_dofs * (n_times -1 )) = parabolic.misfit();
     model.set_g_initial_guess(g_init);
     model.set_state_initial_condition(IC);
-    model.solve(optimizer.optimum()[0]); // BacktrackingLineSearch()
+    model.solve(optimizer.optimum()[0]); 
     vector_t result = model.y().tail((n_times-1)*n_dofs);
     
-    test_vals = Psi_test * result; //;matrix_t::Zero(test_locs.rows(), n_times - 1); // t0 butto via
+    test_vals = Psi_test * result; 
     rmse[0] = std::sqrt( (test_vals - test_obs.reshaped()).array().square().mean());
 
     tmp.tail((n_times-1)*n_dofs) = result;
